@@ -9,6 +9,7 @@
 
 #include <unitree_guide/common/mathTypes.h>
 #include <unitree_guide/common/DebugData.h>
+
 class QuadrupedRobot;
 
 class BalanceCtrl {

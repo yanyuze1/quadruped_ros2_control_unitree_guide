@@ -22,6 +22,18 @@
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <std_msgs/msg/float64.hpp>
 
+#include <chrono>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <controller_interface/controller_interface.hpp>
+#include <control_input_msgs/msg/inputs.hpp>
+#include <std_msgs/msg/float64.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
+
+
+
 
 namespace unitree_guide_controller {
     struct FSMStateList {
@@ -139,15 +151,65 @@ namespace unitree_guide_controller {
         rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr balance_d_wbd_pub_;
         rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr balance_bd_force_pub_;
         rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr balance_bd_torque_pub_;
-        std::array<rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr, 4> balance_force_pub_;
+        std::array<rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr, 4> balance_force_pub_{};
+
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr balance_solved_force_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr balance_solved_torque_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr balance_force_error_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr balance_torque_error_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr balance_normal_force_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr balance_min_constraint_margin_pub_;
 
         rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr estimator_position_pub_;
         rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr estimator_velocity_pub_;
         rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr estimator_gyro_pub_;
         rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr estimator_gyro_global_pub_;
         rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr estimator_acceleration_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr estimator_u_world_pub_;
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr estimator_yaw_pub_;
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr estimator_dyaw_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr estimator_contact_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr estimator_phase_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr estimator_pos_meas_residual_norm_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr estimator_vel_meas_residual_norm_pub_;
+
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr trotting_v_cmd_body_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr trotting_vel_target_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr trotting_pos_body_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr trotting_vel_body_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr trotting_pcd_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr trotting_pos_error_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr trotting_vel_error_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr trotting_dd_pcd_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr trotting_rot_error_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr trotting_d_wbd_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr trotting_gyro_global_pub_;
+
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr trotting_pos_feet_global_goal_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr trotting_vel_feet_global_goal_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr trotting_pos_feet_global_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr trotting_vel_feet_global_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr trotting_force_feet_global_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr trotting_force_feet_body_pub_;
+
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr joint_q_goal_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr joint_qd_goal_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr joint_tau_cmd_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr joint_q_state_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr joint_qd_state_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr joint_tau_state_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr joint_q_error_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr joint_qd_error_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr joint_tau_error_pub_;
+
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr trotting_phase_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr trotting_contact_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr trotting_yaw_cmd_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr trotting_yaw_est_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr trotting_yaw_error_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr trotting_dyaw_cmd_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr trotting_dyaw_est_pub_;
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr trotting_wave_status_pub_;
 
         void publishDebugTopics(const rclcpp::Time &time);
 

@@ -11,6 +11,7 @@
 #define STATETROTTING_H
 #include <unitree_guide/control/BalanceCtrl.h>
 #include <unitree_guide/gait/GaitGenerator.h>
+#include <unitree_guide/common/DebugData.h>
 #include <FSM/FSMState.h>
 
 class StateTrotting final : public FSMState {
@@ -26,6 +27,7 @@ public:
     void exit() override;
 
     FSMStateName checkChange() override;
+    const StateTrottingDebugData &getDebugData() const { return debug_data_; }
 
 private:
     void getUserCmd();
@@ -80,6 +82,12 @@ private:
     double kp_w_;
     Mat3 Kp_swing_, Kd_swing_;
     Vec2 v_x_limit_, v_y_limit_, w_yaw_limit_;
+
+    bool yaw_rate_mode_{false};
+    bool yaw_rate_mode_last_{false};
+    double yaw_hold_deadband_{0.05};
+    StateTrottingDebugData debug_data_;
+
 };
 
 

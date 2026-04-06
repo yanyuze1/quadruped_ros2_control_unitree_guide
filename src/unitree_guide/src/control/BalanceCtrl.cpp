@@ -56,6 +56,23 @@ Vec34 BalanceCtrl::calF(const Vec3 &ddPcd, const Vec3 &dWbd, const RotMat &rot_m
     solveQP();
     const Vec34 force_feet = vec12ToVec34(F_);
     debug_data_.force = force_feet;
+    const Vec6 solved_wrench = A_ * F_;
+    debug_data_.solved_force = solved_wrench.head(3);
+    debug_data_.solved_torque = solved_wrench.tail(3);
+    debug_data_.force_error = debug_data_.solved_force - debug_data_.bd_force;
+    debug_data_.torque_error = debug_data_.solved_torque - debug_data_.bd_torque;
+
+    debug_data_.normal_force.setZero();
+    for (int i = 0; i < 4; ++i) {
+        debug_data_.normal_force(i) = F_(3 * i + 2);
+    }
+
+    if (CI_.rows() > 0) {
+        const VecX margin = CI_ * F_ + ci0_;
+        debug_data_.min_constraint_margin = margin.minCoeff();
+    } else {
+        debug_data_.min_constraint_margin = 0.0;
+    }
     F_prev_ = F_;
     return vec12ToVec34(F_);
 }

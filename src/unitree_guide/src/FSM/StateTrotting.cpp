@@ -4,6 +4,8 @@
 
 #include "unitree_guide/FSM/StateTrotting.h"
 
+#include <cmath>
+
 #include <unitree_guide/common/mathTools.h>
 #include <unitree_guide/control/CtrlComponent.h>
 #include <unitree_guide/control/Estimator.h>
@@ -42,6 +44,11 @@ void StateTrotting::enter() {
     Rd = rotz(yaw_cmd_);
     w_cmd_global_.setZero();
 
+    yaw_rate_mode_ = false;
+    yaw_rate_mode_last_ = false;
+
+    debug_data_ = StateTrottingDebugData();
+
     ctrl_interfaces_.control_inputs_.command = 0;
     gait_generator_.restart();
 }
@@ -67,6 +74,12 @@ void StateTrotting::run(const rclcpp::Time &/*time*/, const rclcpp::Duration &/*
     } else {
         wave_generator_->status_ = WaveStatus::STANCE_ALL;
     }
+
+    debug_data_.phase = wave_generator_->phase_;
+    for (int i = 0; i < 4; ++i) {
+        debug_data_.contact(i) = static_cast<double>(wave_generator_->contact_(i));
+    }
+    debug_data_.wave_status = static_cast<int>(wave_generator_->status_);
 
     calcGain();
 
@@ -97,6 +110,9 @@ void StateTrotting::getUserCmd() {
     d_yaw_cmd_ = -invNormalize(ctrl_interfaces_.control_inputs_.rx, w_yaw_limit_(0), w_yaw_limit_(1));
     d_yaw_cmd_ = 0.90 * d_yaw_cmd_past_ + (1 - 0.90) * d_yaw_cmd_;
     d_yaw_cmd_past_ = d_yaw_cmd_;
+
+    debug_data_.v_cmd_body = v_cmd_body_;
+    debug_data_.d_yaw_cmd = d_yaw_cmd_;
 }
 
 void StateTrotting::calcCmd() {
@@ -115,10 +131,30 @@ void StateTrotting::calcCmd() {
 
     vel_target_(2) = 0;
 
+    const double current_yaw =
+            std::atan2(std::sin(estimator_->getYaw()), std::cos(estimator_->getYaw()));
+
+    yaw_rate_mode_last_ = yaw_rate_mode_;
+    yaw_rate_mode_ = std::fabs(d_yaw_cmd_) > yaw_hold_deadband_;
+
+    if (yaw_rate_mode_) {
+        yaw_cmd_ = current_yaw;
+    } else if (yaw_rate_mode_last_) {
+        yaw_cmd_ = current_yaw;
+    }
+
     /* Turning */
-    yaw_cmd_ = yaw_cmd_ + d_yaw_cmd_ * dt_;
     Rd = rotz(yaw_cmd_);
+    w_cmd_global_.setZero();
     w_cmd_global_(2) = d_yaw_cmd_;
+
+    debug_data_.vel_target = vel_target_;
+    debug_data_.pcd = pcd_;
+    debug_data_.yaw_cmd = yaw_cmd_;
+    debug_data_.yaw_est = estimator_->getYaw();
+    debug_data_.yaw_error = std::atan2(std::sin(yaw_cmd_ - debug_data_.yaw_est),
+                                       std::cos(yaw_cmd_ - debug_data_.yaw_est));
+    debug_data_.d_yaw_est = estimator_->getDYaw();
 }
 
 void StateTrotting::calcTau() {
@@ -126,6 +162,11 @@ void StateTrotting::calcTau() {
     vel_error_ = vel_target_ - vel_body_;
 
     Vec3 dd_pcd = Kpp * pos_error_ + Kdp * vel_error_;
+    Vec3 rot_error = rotMatToExp(Rd * G2B_RotMat);
+    if (yaw_rate_mode_) {
+        // 转向时关闭 yaw 位置误差，避免累计朝向导致“反向纠偏”
+        rot_error(2) = 0.0;
+    }
     Vec3 d_wbd = kp_w_ * rotMatToExp(Rd * G2B_RotMat) +
                  Kd_w_ * (w_cmd_global_ - estimator_->getGyroGlobal());
 
@@ -155,11 +196,29 @@ void StateTrotting::calcTau() {
 
     Vec34 force_feet_body_ = G2B_RotMat * force_feet_global;
 
+    debug_data_.pos_body = pos_body_;
+    debug_data_.vel_body = vel_body_;
+    debug_data_.pos_error = pos_error_;
+    debug_data_.vel_error = vel_error_;
+    debug_data_.dd_pcd = dd_pcd;
+    debug_data_.rot_error = rot_error;
+    debug_data_.d_wbd = d_wbd;
+    debug_data_.gyro_global = estimator_->getGyroGlobal();
+    debug_data_.pos_feet_global_goal = pos_feet_global_goal_;
+    debug_data_.vel_feet_global_goal = vel_feet_global_goal_;
+    debug_data_.pos_feet_global = pos_feet_global;
+    debug_data_.vel_feet_global = vel_feet_global;
+    debug_data_.force_feet_global = force_feet_global;
+    debug_data_.force_feet_body = force_feet_body_;
+    debug_data_.tau_cmd.setZero();
+
     std::vector<KDL::JntArray> current_joints = robot_model_->current_joint_pos_;
     for (int i = 0; i < 4; i++) {
         KDL::JntArray torque = robot_model_->getTorque(force_feet_body_.col(i), i);
         for (int j = 0; j < 3; j++) {
+            const int idx = i * 3 + j;
             ctrl_interfaces_.joint_torque_command_interface_[i * 3 + j].get().set_value(torque(j));
+            debug_data_.tau_cmd(idx) = torque(j);
         }
     }
 }
@@ -175,9 +234,24 @@ void StateTrotting::calcQQd() {
 
     Vec12 q_goal = robot_model_->getQ(pos_feet_target);
     Vec12 qd_goal = robot_model_->getQd(pos_feet_body, vel_feet_target);
+
+    debug_data_.q_goal = q_goal;
+    debug_data_.qd_goal = qd_goal;
+
     for (int i = 0; i < 12; i++) {
         ctrl_interfaces_.joint_position_command_interface_[i].get().set_value(q_goal(i));
         ctrl_interfaces_.joint_velocity_command_interface_[i].get().set_value(qd_goal(i));
+
+        debug_data_.q_state(i) =
+            ctrl_interfaces_.joint_position_state_interface_[i].get().get_value();
+        debug_data_.qd_state(i) =
+            ctrl_interfaces_.joint_velocity_state_interface_[i].get().get_value();
+        debug_data_.tau_state(i) =
+            ctrl_interfaces_.joint_effort_state_interface_[i].get().get_value();
+
+        debug_data_.q_error(i) = debug_data_.q_goal(i) - debug_data_.q_state(i);
+        debug_data_.qd_error(i) = debug_data_.qd_goal(i) - debug_data_.qd_state(i);
+        debug_data_.tau_error(i) = debug_data_.tau_cmd(i) - debug_data_.tau_state(i);
     }
 }
 

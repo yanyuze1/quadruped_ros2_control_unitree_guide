@@ -146,13 +146,6 @@ Estimator::Estimator(CtrlInterfaces &ctrl_interfaces, CtrlComponent &ctrl_compon
     low_pass_filters_[1] = std::make_shared<LowPassFilter>(dt_, 3.0);
     low_pass_filters_[2] = std::make_shared<LowPassFilter>(dt_, 3.0);
 
-    debug_data_.position = getPosition();
-    debug_data_.velocity = getVelocity();
-    debug_data_.gyro = gyro_;
-    debug_data_.gyro_global = getGyroGlobal();
-    debug_data_.acceleration = acceleration_;
-    debug_data_.yaw = getYaw();
-    debug_data_.dyaw = getDYaw();
 }
 
 double Estimator::getYaw() const {
@@ -236,4 +229,23 @@ void Estimator::update() {
     x_hat_(3) = low_pass_filters_[0]->getValue();
     x_hat_(4) = low_pass_filters_[1]->getValue();
     x_hat_(5) = low_pass_filters_[2]->getValue();
+
+    debug_data_.position = getPosition();
+    debug_data_.velocity = getVelocity();
+    debug_data_.gyro = gyro_;
+    debug_data_.gyro_global = getGyroGlobal();
+    debug_data_.acceleration = acceleration_;
+    debug_data_.u_world = u_;
+    debug_data_.yaw = getYaw();
+    debug_data_.dyaw = getDYaw();
+    debug_data_.contact.setZero();
+    debug_data_.phase.setZero();
+
+    for (int i = 0; i < 4; ++i) {
+        debug_data_.contact(i) = static_cast<double>(wave_generator_->contact_[i]);
+        debug_data_.phase(i) = wave_generator_->phase_[i];
+    }
+
+    debug_data_.pos_meas_residual_norm = (y_ - y_hat_).segment(0, 12).norm();
+    debug_data_.vel_meas_residual_norm = (y_ - y_hat_).segment(12, 12).norm();
 }

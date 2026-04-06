@@ -29,6 +29,44 @@ geometry_msgs::msg::Vector3Stamped makeVec3Msg(
     msg.vector.z = v(2);
     return msg;
 }
+std_msgs::msg::Float64 makeScalarMsg(double value)
+{
+    std_msgs::msg::Float64 msg;
+    msg.data = value;
+    return msg;
+}
+
+std_msgs::msg::Float64MultiArray makeArrayMsg(const Vec4 &v)
+{
+    std_msgs::msg::Float64MultiArray msg;
+    msg.data.resize(4);
+    for (int i = 0; i < 4; ++i) {
+        msg.data[static_cast<size_t>(i)] = v(i);
+    }
+    return msg;
+}
+
+std_msgs::msg::Float64MultiArray makeArrayMsg(const Vec12 &v)
+{
+    std_msgs::msg::Float64MultiArray msg;
+    msg.data.resize(12);
+    for (int i = 0; i < 12; ++i) {
+        msg.data[static_cast<size_t>(i)] = v(i);
+    }
+    return msg;
+}
+
+std_msgs::msg::Float64MultiArray makeArrayMsg(const Vec34 &m)
+{
+    std_msgs::msg::Float64MultiArray msg;
+    msg.data.resize(12);
+    for (int leg = 0; leg < 4; ++leg) {
+        for (int axis = 0; axis < 3; ++axis) {
+            msg.data[static_cast<size_t>(leg * 3 + axis)] = m(axis, leg);
+        }
+    }
+    return msg;
+}
 }
 
 namespace unitree_guide_controller
@@ -181,48 +219,82 @@ namespace unitree_guide_controller
         {
             const auto qos = rclcpp::QoS(rclcpp::KeepLast(10));
 
-            balance_dd_pcd_pub_ =
-                get_node()->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-                    "/unitree_guide/debug/balance/dd_pcd", qos);
-            balance_d_wbd_pub_ =
-                get_node()->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-                    "/unitree_guide/debug/balance/d_wbd", qos);
-            balance_bd_force_pub_ =
-                get_node()->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-                    "/unitree_guide/debug/balance/bd_force", qos);
-            balance_bd_torque_pub_ =
-                get_node()->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-                    "/unitree_guide/debug/balance/bd_torque", qos);
+            auto make_vec3_pub = [&](auto &pub, const std::string &name) {
+                pub = get_node()->create_publisher<geometry_msgs::msg::Vector3Stamped>(name, qos);
+            };
+            auto make_scalar_pub = [&](auto &pub, const std::string &name) {
+                pub = get_node()->create_publisher<std_msgs::msg::Float64>(name, qos);
+            };
+            auto make_array_pub = [&](auto &pub, const std::string &name) {
+                pub = get_node()->create_publisher<std_msgs::msg::Float64MultiArray>(name, qos);
+            };
 
-            const std::array<std::string, 4> leg_names = {"fr", "fl", "rr", "rl"};
-            for (size_t i = 0; i < 4; ++i)
-            {
-                balance_force_pub_[i] =
-                    get_node()->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-                        std::string("/unitree_guide/debug/balance/force_") + leg_names[i], qos);
-            }
+            make_vec3_pub(balance_dd_pcd_pub_, "/unitree_guide/debug/balance/dd_pcd");
+            make_vec3_pub(balance_d_wbd_pub_, "/unitree_guide/debug/balance/d_wbd");
+            make_vec3_pub(balance_bd_force_pub_, "/unitree_guide/debug/balance/bd_force");
+            make_vec3_pub(balance_bd_torque_pub_, "/unitree_guide/debug/balance/bd_torque");
+            make_vec3_pub(balance_force_pub_[0], "/unitree_guide/debug/balance/force_fr");
+            make_vec3_pub(balance_force_pub_[1], "/unitree_guide/debug/balance/force_fl");
+            make_vec3_pub(balance_force_pub_[2], "/unitree_guide/debug/balance/force_rr");
+            make_vec3_pub(balance_force_pub_[3], "/unitree_guide/debug/balance/force_rl");
 
-            estimator_position_pub_ =
-                get_node()->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-                    "/unitree_guide/debug/estimator/position", qos);
-            estimator_velocity_pub_ =
-                get_node()->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-                    "/unitree_guide/debug/estimator/velocity", qos);
-            estimator_gyro_pub_ =
-                get_node()->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-                    "/unitree_guide/debug/estimator/gyro", qos);
-            estimator_gyro_global_pub_ =
-                get_node()->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-                    "/unitree_guide/debug/estimator/gyro_global", qos);
-            estimator_acceleration_pub_ =
-                get_node()->create_publisher<geometry_msgs::msg::Vector3Stamped>(
-                    "/unitree_guide/debug/estimator/acceleration", qos);
-            estimator_yaw_pub_ =
-                get_node()->create_publisher<std_msgs::msg::Float64>(
-                    "/unitree_guide/debug/estimator/yaw", qos);
-            estimator_dyaw_pub_ =
-                get_node()->create_publisher<std_msgs::msg::Float64>(
-                    "/unitree_guide/debug/estimator/dyaw", qos);
+            make_vec3_pub(balance_solved_force_pub_, "/unitree_guide/debug/balance/solved_force");
+            make_vec3_pub(balance_solved_torque_pub_, "/unitree_guide/debug/balance/solved_torque");
+            make_vec3_pub(balance_force_error_pub_, "/unitree_guide/debug/balance/force_error");
+            make_vec3_pub(balance_torque_error_pub_, "/unitree_guide/debug/balance/torque_error");
+            make_array_pub(balance_normal_force_pub_, "/unitree_guide/debug/balance/normal_force");
+            make_scalar_pub(balance_min_constraint_margin_pub_, "/unitree_guide/debug/balance/min_constraint_margin");
+
+            make_vec3_pub(estimator_position_pub_, "/unitree_guide/debug/estimator/position");
+            make_vec3_pub(estimator_velocity_pub_, "/unitree_guide/debug/estimator/velocity");
+            make_vec3_pub(estimator_gyro_pub_, "/unitree_guide/debug/estimator/gyro");
+            make_vec3_pub(estimator_gyro_global_pub_, "/unitree_guide/debug/estimator/gyro_global");
+            make_vec3_pub(estimator_acceleration_pub_, "/unitree_guide/debug/estimator/acceleration");
+            make_vec3_pub(estimator_u_world_pub_, "/unitree_guide/debug/estimator/u_world");
+            make_scalar_pub(estimator_yaw_pub_, "/unitree_guide/debug/estimator/yaw");
+            make_scalar_pub(estimator_dyaw_pub_, "/unitree_guide/debug/estimator/dyaw");
+            make_array_pub(estimator_contact_pub_, "/unitree_guide/debug/estimator/contact");
+            make_array_pub(estimator_phase_pub_, "/unitree_guide/debug/estimator/phase");
+            make_scalar_pub(estimator_pos_meas_residual_norm_pub_, "/unitree_guide/debug/estimator/pos_meas_residual_norm");
+            make_scalar_pub(estimator_vel_meas_residual_norm_pub_, "/unitree_guide/debug/estimator/vel_meas_residual_norm");
+
+            make_vec3_pub(trotting_v_cmd_body_pub_, "/unitree_guide/debug/trotting/v_cmd_body");
+            make_vec3_pub(trotting_vel_target_pub_, "/unitree_guide/debug/trotting/vel_target");
+            make_vec3_pub(trotting_pos_body_pub_, "/unitree_guide/debug/trotting/pos_body");
+            make_vec3_pub(trotting_vel_body_pub_, "/unitree_guide/debug/trotting/vel_body");
+            make_vec3_pub(trotting_pcd_pub_, "/unitree_guide/debug/trotting/pcd");
+            make_vec3_pub(trotting_pos_error_pub_, "/unitree_guide/debug/trotting/pos_error");
+            make_vec3_pub(trotting_vel_error_pub_, "/unitree_guide/debug/trotting/vel_error");
+            make_vec3_pub(trotting_dd_pcd_pub_, "/unitree_guide/debug/trotting/dd_pcd");
+            make_vec3_pub(trotting_rot_error_pub_, "/unitree_guide/debug/trotting/rot_error");
+            make_vec3_pub(trotting_d_wbd_pub_, "/unitree_guide/debug/trotting/d_wbd");
+            make_vec3_pub(trotting_gyro_global_pub_, "/unitree_guide/debug/trotting/gyro_global");
+
+            make_array_pub(trotting_pos_feet_global_goal_pub_, "/unitree_guide/debug/trotting/pos_feet_global_goal");
+            make_array_pub(trotting_vel_feet_global_goal_pub_, "/unitree_guide/debug/trotting/vel_feet_global_goal");
+            make_array_pub(trotting_pos_feet_global_pub_, "/unitree_guide/debug/trotting/pos_feet_global");
+            make_array_pub(trotting_vel_feet_global_pub_, "/unitree_guide/debug/trotting/vel_feet_global");
+            make_array_pub(trotting_force_feet_global_pub_, "/unitree_guide/debug/trotting/force_feet_global");
+            make_array_pub(trotting_force_feet_body_pub_, "/unitree_guide/debug/trotting/force_feet_body");
+
+            make_array_pub(joint_q_goal_pub_, "/unitree_guide/debug/joint/q_goal");
+            make_array_pub(joint_qd_goal_pub_, "/unitree_guide/debug/joint/qd_goal");
+            make_array_pub(joint_tau_cmd_pub_, "/unitree_guide/debug/joint/tau_cmd");
+            make_array_pub(joint_q_state_pub_, "/unitree_guide/debug/joint/q_state");
+            make_array_pub(joint_qd_state_pub_, "/unitree_guide/debug/joint/qd_state");
+            make_array_pub(joint_tau_state_pub_, "/unitree_guide/debug/joint/tau_state");
+            make_array_pub(joint_q_error_pub_, "/unitree_guide/debug/joint/q_error");
+            make_array_pub(joint_qd_error_pub_, "/unitree_guide/debug/joint/qd_error");
+            make_array_pub(joint_tau_error_pub_, "/unitree_guide/debug/joint/tau_error");
+
+            make_array_pub(trotting_phase_pub_, "/unitree_guide/debug/trotting/phase");
+            make_array_pub(trotting_contact_pub_, "/unitree_guide/debug/trotting/contact");
+            make_scalar_pub(trotting_yaw_cmd_pub_, "/unitree_guide/debug/trotting/yaw_cmd");
+            make_scalar_pub(trotting_yaw_est_pub_, "/unitree_guide/debug/trotting/yaw_est");
+            make_scalar_pub(trotting_yaw_error_pub_, "/unitree_guide/debug/trotting/yaw_error");
+            make_scalar_pub(trotting_dyaw_cmd_pub_, "/unitree_guide/debug/trotting/dyaw_cmd");
+            make_scalar_pub(trotting_dyaw_est_pub_, "/unitree_guide/debug/trotting/dyaw_est");
+            make_scalar_pub(trotting_wave_status_pub_, "/unitree_guide/debug/trotting/wave_status");
         }
 
         control_input_subscription_ = get_node()->create_subscription<control_input_msgs::msg::Inputs>(
@@ -329,32 +401,111 @@ namespace unitree_guide_controller
 
     void UnitreeGuideController::publishDebugTopics(const rclcpp::Time &time)
     {
+        if (ctrl_component_.balance_ctrl_ == nullptr || ctrl_component_.estimator_ == nullptr) {
+            return;
+        }
+
         const auto &bal = ctrl_component_.balance_ctrl_->getDebugData();
         const auto &est = ctrl_component_.estimator_->getDebugData();
 
-        balance_dd_pcd_pub_->publish(makeVec3Msg(time, "world", bal.dd_pcd));
-        balance_d_wbd_pub_->publish(makeVec3Msg(time, "world", bal.d_wbd));
-        balance_bd_force_pub_->publish(makeVec3Msg(time, "world", bal.bd_force));
-        balance_bd_torque_pub_->publish(makeVec3Msg(time, "world", bal.bd_torque));
+        auto pub_vec3 = [&](const auto &pub, const std::string &frame_id, const Vec3 &v) {
+            if (pub) {
+                pub->publish(makeVec3Msg(time, frame_id, v));
+            }
+        };
+        auto pub_scalar = [&](const auto &pub, double value) {
+            if (pub) {
+                pub->publish(makeScalarMsg(value));
+            }
+        };
+        auto pub_v4 = [&](const auto &pub, const Vec4 &v) {
+            if (pub) {
+                pub->publish(makeArrayMsg(v));
+            }
+        };
+        auto pub_v12 = [&](const auto &pub, const Vec12 &v) {
+            if (pub) {
+                pub->publish(makeArrayMsg(v));
+            }
+        };
+        auto pub_v34 = [&](const auto &pub, const Vec34 &v) {
+            if (pub) {
+                pub->publish(makeArrayMsg(v));
+            }
+        };
 
-        for (size_t i = 0; i < 4; ++i)
-        {
-            balance_force_pub_[i]->publish(makeVec3Msg(time, "world", bal.force.col(i)));
+        pub_vec3(balance_dd_pcd_pub_, "world", bal.dd_pcd);
+        pub_vec3(balance_d_wbd_pub_, "world", bal.d_wbd);
+        pub_vec3(balance_bd_force_pub_, "world", bal.bd_force);
+        pub_vec3(balance_bd_torque_pub_, "world", bal.bd_torque);
+        pub_vec3(balance_force_pub_[0], "world", bal.force.col(0));
+        pub_vec3(balance_force_pub_[1], "world", bal.force.col(1));
+        pub_vec3(balance_force_pub_[2], "world", bal.force.col(2));
+        pub_vec3(balance_force_pub_[3], "world", bal.force.col(3));
+        pub_vec3(balance_solved_force_pub_, "world", bal.solved_force);
+        pub_vec3(balance_solved_torque_pub_, "world", bal.solved_torque);
+        pub_vec3(balance_force_error_pub_, "world", bal.force_error);
+        pub_vec3(balance_torque_error_pub_, "world", bal.torque_error);
+        pub_v4(balance_normal_force_pub_, bal.normal_force);
+        pub_scalar(balance_min_constraint_margin_pub_, bal.min_constraint_margin);
+
+        pub_vec3(estimator_position_pub_, "world", est.position);
+        pub_vec3(estimator_velocity_pub_, "world", est.velocity);
+        pub_vec3(estimator_gyro_pub_, base_name_, est.gyro);
+        pub_vec3(estimator_gyro_global_pub_, "world", est.gyro_global);
+        pub_vec3(estimator_acceleration_pub_, base_name_, est.acceleration);
+        pub_vec3(estimator_u_world_pub_, "world", est.u_world);
+        pub_scalar(estimator_yaw_pub_, est.yaw);
+        pub_scalar(estimator_dyaw_pub_, est.dyaw);
+        pub_v4(estimator_contact_pub_, est.contact);
+        pub_v4(estimator_phase_pub_, est.phase);
+        pub_scalar(estimator_pos_meas_residual_norm_pub_, est.pos_meas_residual_norm);
+        pub_scalar(estimator_vel_meas_residual_norm_pub_, est.vel_meas_residual_norm);
+
+        if (current_state_ != nullptr &&
+            current_state_->state_name == FSMStateName::TROTTING &&
+            state_list_.trotting != nullptr) {
+
+            const auto &tr = state_list_.trotting->getDebugData();
+
+            pub_vec3(trotting_v_cmd_body_pub_, base_name_, tr.v_cmd_body);
+            pub_vec3(trotting_vel_target_pub_, "world", tr.vel_target);
+            pub_vec3(trotting_pos_body_pub_, "world", tr.pos_body);
+            pub_vec3(trotting_vel_body_pub_, "world", tr.vel_body);
+            pub_vec3(trotting_pcd_pub_, "world", tr.pcd);
+            pub_vec3(trotting_pos_error_pub_, "world", tr.pos_error);
+            pub_vec3(trotting_vel_error_pub_, "world", tr.vel_error);
+            pub_vec3(trotting_dd_pcd_pub_, "world", tr.dd_pcd);
+            pub_vec3(trotting_rot_error_pub_, base_name_, tr.rot_error);
+            pub_vec3(trotting_d_wbd_pub_, "world", tr.d_wbd);
+            pub_vec3(trotting_gyro_global_pub_, "world", tr.gyro_global);
+
+            pub_v34(trotting_pos_feet_global_goal_pub_, tr.pos_feet_global_goal);
+            pub_v34(trotting_vel_feet_global_goal_pub_, tr.vel_feet_global_goal);
+            pub_v34(trotting_pos_feet_global_pub_, tr.pos_feet_global);
+            pub_v34(trotting_vel_feet_global_pub_, tr.vel_feet_global);
+            pub_v34(trotting_force_feet_global_pub_, tr.force_feet_global);
+            pub_v34(trotting_force_feet_body_pub_, tr.force_feet_body);
+
+            pub_v12(joint_q_goal_pub_, tr.q_goal);
+            pub_v12(joint_qd_goal_pub_, tr.qd_goal);
+            pub_v12(joint_tau_cmd_pub_, tr.tau_cmd);
+            pub_v12(joint_q_state_pub_, tr.q_state);
+            pub_v12(joint_qd_state_pub_, tr.qd_state);
+            pub_v12(joint_tau_state_pub_, tr.tau_state);
+            pub_v12(joint_q_error_pub_, tr.q_error);
+            pub_v12(joint_qd_error_pub_, tr.qd_error);
+            pub_v12(joint_tau_error_pub_, tr.tau_error);
+
+            pub_v4(trotting_phase_pub_, tr.phase);
+            pub_v4(trotting_contact_pub_, tr.contact);
+            pub_scalar(trotting_yaw_cmd_pub_, tr.yaw_cmd);
+            pub_scalar(trotting_yaw_est_pub_, tr.yaw_est);
+            pub_scalar(trotting_yaw_error_pub_, tr.yaw_error);
+            pub_scalar(trotting_dyaw_cmd_pub_, tr.d_yaw_cmd);
+            pub_scalar(trotting_dyaw_est_pub_, tr.d_yaw_est);
+            pub_scalar(trotting_wave_status_pub_, static_cast<double>(tr.wave_status));
         }
-
-        estimator_position_pub_->publish(makeVec3Msg(time, "world", est.position));
-        estimator_velocity_pub_->publish(makeVec3Msg(time, "world", est.velocity));
-        estimator_gyro_pub_->publish(makeVec3Msg(time, base_name_, est.gyro));
-        estimator_gyro_global_pub_->publish(makeVec3Msg(time, "world", est.gyro_global));
-        estimator_acceleration_pub_->publish(makeVec3Msg(time, base_name_, est.acceleration));
-
-        std_msgs::msg::Float64 yaw_msg;
-        yaw_msg.data = est.yaw;
-        estimator_yaw_pub_->publish(yaw_msg);
-
-        std_msgs::msg::Float64 dyaw_msg;
-        dyaw_msg.data = est.dyaw;
-        estimator_dyaw_pub_->publish(dyaw_msg);
     }
 
     std::shared_ptr<FSMState> UnitreeGuideController::getNextState(const FSMStateName stateName) const
