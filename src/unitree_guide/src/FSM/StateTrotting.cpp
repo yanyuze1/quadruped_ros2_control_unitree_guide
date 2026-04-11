@@ -21,10 +21,10 @@ StateTrotting::StateTrotting(CtrlInterfaces &ctrl_interfaces,
                                                               gait_generator_(ctrl_component) {
     gait_height_ = 0.08; // 抬腿高度(m)
     // vmc控制参数
-    Kpp = Vec3(90, 90, 90).asDiagonal();
-    Kdp = Vec3(20, 20, 20).asDiagonal();
-    kp_w_ = 850;
-    Kd_w_ = Vec3(80, 80, 80).asDiagonal();
+    Kpp = Vec3(70, 70, 70).asDiagonal();
+    Kdp = Vec3(10, 10, 10).asDiagonal();
+    kp_w_ = 780;
+    Kd_w_ = Vec3(70, 70, 70).asDiagonal();
     Kp_swing_ = Vec3(400, 400, 400).asDiagonal();
     Kd_swing_ = Vec3(10, 10, 10).asDiagonal();
 
@@ -167,7 +167,8 @@ void StateTrotting::calcTau() {
         // 转向时关闭 yaw 位置误差，避免累计朝向导致“反向纠偏”
         rot_error(2) = 0.0;
     }
-    Vec3 d_wbd = kp_w_ * rotMatToExp(Rd * G2B_RotMat) +
+    // Vec3 d_wbd = kp_w_ * rotMatToExp(Rd * G2B_RotMat) +
+    Vec3 d_wbd = kp_w_ * rot_error +
                  Kd_w_ * (w_cmd_global_ - estimator_->getGyroGlobal());
 
     dd_pcd(0) = saturation(dd_pcd(0), Vec2(-3, 3));

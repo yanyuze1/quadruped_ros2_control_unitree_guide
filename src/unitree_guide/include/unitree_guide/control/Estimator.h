@@ -72,14 +72,33 @@ public:
      * @return feet velocity in world frame
      * 估计四只足端在世界坐标系下的速度
      */
+    // Vec34 getFeetVel() {
+    //     const std::vector<KDL::Vector> feet_vel = robot_model_->getFeet2BVelocities();
+    //     Vec34 result;
+    //     for (int i(0); i < 4; ++i) {
+    //         result.col(i) = Vec3(feet_vel[i].data) + getVelocity();
+    //     }
+    //     return result;
+    // }
+
     Vec34 getFeetVel() {
-        const std::vector<KDL::Vector> feet_vel = robot_model_->getFeet2BVelocities();
+        const std::vector<KDL::Vector> feet_vel_body_list = robot_model_->getFeet2BVelocities();
+        const std::vector<KDL::Frame> feet_pos_body_list = robot_model_->getFeet2BPositions();
         Vec34 result;
+        const Vec3 body_vel_world = getVelocity();
+
         for (int i(0); i < 4; ++i) {
-            result.col(i) = Vec3(feet_vel[i].data) + getVelocity();
+            const Vec3 foot_pos_body = Vec3(feet_pos_body_list[i].p.data);
+            const Vec3 foot_vel_body = Vec3(feet_vel_body_list[i].data);
+
+            // [修改] 返回“世界系足端速度”
+            // 原代码少了 body->world 旋转，也少了 omega x r 项
+            result.col(i) = body_vel_world +
+                            rotation_ * (gyro_.cross(foot_pos_body) + foot_vel_body);
         }
         return result;
     }
+
 
     /**
      * Get the estimated foot position in body frame

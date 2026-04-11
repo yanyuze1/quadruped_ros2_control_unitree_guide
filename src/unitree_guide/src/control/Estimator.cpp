@@ -152,6 +152,104 @@ double Estimator::getYaw() const {
     return rotMatToRPY(rotation_)(2);
 }
 
+// void Estimator::update() {
+//     if (robot_model_->mass_ == 0) return;
+
+//     Q = QInit_;
+//     R = RInit_;
+
+//     foot_poses_ = robot_model_->getFeet2BPositions();
+//     foot_vels_ = robot_model_->getFeet2BVelocities();
+//     feet_h_.setZero();
+
+//     // Adjust the covariance based on foot contact and phase.
+//     for (int i(0); i < 4; ++i) {
+//         if (wave_generator_->contact_[i] == 0) {
+//             // foot not contact
+//             Q.block(6 + 3 * i, 6 + 3 * i, 3, 3) = large_variance_ * Eigen::MatrixXd::Identity(3, 3);
+//             R.block(12 + 3 * i, 12 + 3 * i, 3, 3) = large_variance_ * Eigen::MatrixXd::Identity(3, 3);
+//             R(24 + i, 24 + i) = large_variance_;
+//         } else {
+//             // foot contact
+//             const double trust = windowFunc(wave_generator_->phase_[i], 0.2);
+//             Q.block(6 + 3 * i, 6 + 3 * i, 3, 3) =
+//                     (1 + (1 - trust) * large_variance_) *
+//                     QInit_.block(6 + 3 * i, 6 + 3 * i, 3, 3);
+//             R.block(12 + 3 * i, 12 + 3 * i, 3, 3) =
+//                     (1 + (1 - trust) * large_variance_) *
+//                     RInit_.block(12 + 3 * i, 12 + 3 * i, 3, 3);
+//             R(24 + i, 24 + i) =
+//                     (1 + (1 - trust) * large_variance_) * RInit_(24 + i, 24 + i);
+//         }
+//         feet_pos_body_.segment(3 * i, 3) = Vec3(foot_poses_[i].p.data);
+//         feet_vel_body_.segment(3 * i, 3) = Vec3(foot_vels_[i].data);
+//     }
+
+//     Quat quat;
+//     quat << ctrl_interfaces_.imu_state_interface_[0].get().get_value(),
+//             ctrl_interfaces_.imu_state_interface_[1].get().get_value(),
+//             ctrl_interfaces_.imu_state_interface_[2].get().get_value(),
+//             ctrl_interfaces_.imu_state_interface_[3].get().get_value();
+//     rotation_ = quatToRotMat(quat);
+
+//     gyro_ << ctrl_interfaces_.imu_state_interface_[4].get().get_value(),
+//             ctrl_interfaces_.imu_state_interface_[5].get().get_value(),
+//             ctrl_interfaces_.imu_state_interface_[6].get().get_value();
+
+//     acceleration_ << ctrl_interfaces_.imu_state_interface_[7].get().get_value(),
+//             ctrl_interfaces_.imu_state_interface_[8].get().get_value(),
+//             ctrl_interfaces_.imu_state_interface_[9].get().get_value();
+
+//     u_ = rotation_ * acceleration_ + g_;
+//     x_hat_ = A * x_hat_ + B * u_;
+//     y_hat_ = C * x_hat_;
+
+//     // Update the measurement value
+//     y_ << feet_pos_body_, feet_vel_body_, feet_h_;
+
+//     // Update the covariance matrix
+//     Ppriori = A * P * A.transpose() + Q;
+//     S = R + C * Ppriori * C.transpose();
+//     Slu = S.lu();
+//     Sy = Slu.solve(y_ - y_hat_);
+//     Sc = Slu.solve(C);
+//     SR = Slu.solve(R);
+//     STC = S.transpose().lu().solve(C);
+//     IKC = Eigen::MatrixXd::Identity(18, 18) - Ppriori * C.transpose() * Sc;
+
+//     // Update the state and covariance matrix
+//     x_hat_ += Ppriori * C.transpose() * Sy;
+//     P = IKC * Ppriori * IKC.transpose() +
+//         Ppriori * C.transpose() * SR * STC * Ppriori.transpose();
+
+//     // // Using low pass filter to smooth the velocity
+//     low_pass_filters_[0]->addValue(x_hat_(3));
+//     low_pass_filters_[1]->addValue(x_hat_(4));
+//     low_pass_filters_[2]->addValue(x_hat_(5));
+//     x_hat_(3) = low_pass_filters_[0]->getValue();
+//     x_hat_(4) = low_pass_filters_[1]->getValue();
+//     x_hat_(5) = low_pass_filters_[2]->getValue();
+
+//     debug_data_.position = getPosition();
+//     debug_data_.velocity = getVelocity();
+//     debug_data_.gyro = gyro_;
+//     debug_data_.gyro_global = getGyroGlobal();
+//     debug_data_.acceleration = acceleration_;
+//     debug_data_.u_world = u_;
+//     debug_data_.yaw = getYaw();
+//     debug_data_.dyaw = getDYaw();
+//     debug_data_.contact.setZero();
+//     debug_data_.phase.setZero();
+
+//     for (int i = 0; i < 4; ++i) {
+//         debug_data_.contact(i) = static_cast<double>(wave_generator_->contact_[i]);
+//         debug_data_.phase(i) = wave_generator_->phase_[i];
+//     }
+
+//     debug_data_.pos_meas_residual_norm = (y_ - y_hat_).segment(0, 12).norm();
+//     debug_data_.vel_meas_residual_norm = (y_ - y_hat_).segment(12, 12).norm();
+// }
+
 void Estimator::update() {
     if (robot_model_->mass_ == 0) return;
 
@@ -162,29 +260,7 @@ void Estimator::update() {
     foot_vels_ = robot_model_->getFeet2BVelocities();
     feet_h_.setZero();
 
-    // Adjust the covariance based on foot contact and phase.
-    for (int i(0); i < 4; ++i) {
-        if (wave_generator_->contact_[i] == 0) {
-            // foot not contact
-            Q.block(6 + 3 * i, 6 + 3 * i, 3, 3) = large_variance_ * Eigen::MatrixXd::Identity(3, 3);
-            R.block(12 + 3 * i, 12 + 3 * i, 3, 3) = large_variance_ * Eigen::MatrixXd::Identity(3, 3);
-            R(24 + i, 24 + i) = large_variance_;
-        } else {
-            // foot contact
-            const double trust = windowFunc(wave_generator_->phase_[i], 0.2);
-            Q.block(6 + 3 * i, 6 + 3 * i, 3, 3) =
-                    (1 + (1 - trust) * large_variance_) *
-                    QInit_.block(6 + 3 * i, 6 + 3 * i, 3, 3);
-            R.block(12 + 3 * i, 12 + 3 * i, 3, 3) =
-                    (1 + (1 - trust) * large_variance_) *
-                    RInit_.block(12 + 3 * i, 12 + 3 * i, 3, 3);
-            R(24 + i, 24 + i) =
-                    (1 + (1 - trust) * large_variance_) * RInit_(24 + i, 24 + i);
-        }
-        feet_pos_body_.segment(3 * i, 3) = Vec3(foot_poses_[i].p.data);
-        feet_vel_body_.segment(3 * i, 3) = Vec3(foot_vels_[i].data);
-    }
-
+    // [修改] 先读取 IMU，再做 body->world 变换
     Quat quat;
     quat << ctrl_interfaces_.imu_state_interface_[0].get().get_value(),
             ctrl_interfaces_.imu_state_interface_[1].get().get_value(),
@@ -200,14 +276,41 @@ void Estimator::update() {
             ctrl_interfaces_.imu_state_interface_[8].get().get_value(),
             ctrl_interfaces_.imu_state_interface_[9].get().get_value();
 
+    for (int i(0); i < 4; ++i) {
+        if (wave_generator_->contact_[i] == 0) {
+            Q.block(6 + 3 * i, 6 + 3 * i, 3, 3) = large_variance_ * Eigen::MatrixXd::Identity(3, 3);
+            R.block(12 + 3 * i, 12 + 3 * i, 3, 3) = large_variance_ * Eigen::MatrixXd::Identity(3, 3);
+            R(24 + i, 24 + i) = large_variance_;
+        } else {
+            const double trust = windowFunc(wave_generator_->phase_[i], 0.2);
+            Q.block(6 + 3 * i, 6 + 3 * i, 3, 3) =
+                    (1 + (1 - trust) * large_variance_) *
+                    QInit_.block(6 + 3 * i, 6 + 3 * i, 3, 3);
+            R.block(12 + 3 * i, 12 + 3 * i, 3, 3) =
+                    (1 + (1 - trust) * large_variance_) *
+                    RInit_.block(12 + 3 * i, 12 + 3 * i, 3, 3);
+            R(24 + i, 24 + i) =
+                    (1 + (1 - trust) * large_variance_) * RInit_(24 + i, 24 + i);
+        }
+
+        const Vec3 foot_pos_body = Vec3(foot_poses_[i].p.data);
+        const Vec3 foot_vel_body = Vec3(foot_vels_[i].data);
+
+        // [修改] 观测位置改成世界系下的“足端相对机身”向量
+        feet_pos_body_.segment(3 * i, 3) = rotation_ * foot_pos_body;
+
+        // [修改] 观测速度改成世界系下的“足端相对机身速度”
+        // 与观测矩阵 C 中的速度模型保持一致
+        feet_vel_body_.segment(3 * i, 3) =
+                rotation_ * (gyro_.cross(foot_pos_body) + foot_vel_body);
+    }
+
     u_ = rotation_ * acceleration_ + g_;
     x_hat_ = A * x_hat_ + B * u_;
     y_hat_ = C * x_hat_;
 
-    // Update the measurement value
     y_ << feet_pos_body_, feet_vel_body_, feet_h_;
 
-    // Update the covariance matrix
     Ppriori = A * P * A.transpose() + Q;
     S = R + C * Ppriori * C.transpose();
     Slu = S.lu();
@@ -217,12 +320,10 @@ void Estimator::update() {
     STC = S.transpose().lu().solve(C);
     IKC = Eigen::MatrixXd::Identity(18, 18) - Ppriori * C.transpose() * Sc;
 
-    // Update the state and covariance matrix
     x_hat_ += Ppriori * C.transpose() * Sy;
     P = IKC * Ppriori * IKC.transpose() +
         Ppriori * C.transpose() * SR * STC * Ppriori.transpose();
 
-    // // Using low pass filter to smooth the velocity
     low_pass_filters_[0]->addValue(x_hat_(3));
     low_pass_filters_[1]->addValue(x_hat_(4));
     low_pass_filters_[2]->addValue(x_hat_(5));
@@ -249,3 +350,4 @@ void Estimator::update() {
     debug_data_.pos_meas_residual_norm = (y_ - y_hat_).segment(0, 12).norm();
     debug_data_.vel_meas_residual_norm = (y_ - y_hat_).segment(12, 12).norm();
 }
+
