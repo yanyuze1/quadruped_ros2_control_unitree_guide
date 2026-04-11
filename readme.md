@@ -3,7 +3,7 @@
 感谢项目[Quadruped ROS2 Control](https://github.com/legubiao/quadruped_ros2_control/tree/humble),本项目在此基础上修改而来。当前使用Unitree_guide分支进行。
 ## 修改后效果
 ### 仿真效果
-![alt text](<images/images2.gif>)
+![alt text](<images/2026-04-11 14-50-38.gif>)
 
 这是在项目修改后的仿真效果。
 ## 项目修改 
