@@ -1,6 +1,23 @@
-# Quadruped ROS2 Control 
- ## 前言 ## 
-感谢项目[Quadruped ROS2 Control](https://github.com/legubiao/quadruped_ros2_control/tree/humble),本项目在此基础上修改而来。当前使用Unitree_guide分支进行。
+# Quadruped ROS2 Control
+
+<p align="center">
+  <img src="https://www.unitree.com/images/382c851410194e098c12d816caf8b90d_3840x2146.jpg" alt="Unitree Go2 中文宣传图" width="88%">
+</p>
+
+<p align="center">
+  <em>面向 Unitree Go2 的仿真验证、控制器问题排查与 ROS 2 集成记录。</em>
+</p>
+
+<p align="center">
+  <strong>简体中文</strong> | <a href="./readme_EN.md">English</a>
+</p>
+
+> 这是一份基于原始 `Quadruped ROS2 Control` 项目整理的中文实践说明，聚焦 `Unitree_guide` 分支下的控制器修改过程与 `Unitree Go2` 仿真调试经验。
+
+---
+
+## 前言
+如果你也在折腾四足机器人控制、仿真和调参，希望这份记录能帮你更快进入状态，也少走一些弯路。感谢项目[Quadruped ROS2 Control](https://github.com/legubiao/quadruped_ros2_control/tree/humble)提供了扎实的基础，本项目正是在它之上继续修改与整理而来，当前使用的是 `Unitree_guide` 分支。后面的内容会围绕真实调试过程中遇到的问题与解决思路展开，希望能让你带着兴趣一路看下去，也能在需要时真正派上用场。
 ## 修改后效果
 ### 仿真效果
 ![alt text](<images/2026-04-11 14-50-38.gif>)
@@ -344,4 +361,3 @@ for (int i(0); i < 4; ++i) {
 虽然我不懂，但我一定会跟你说加油，努力一下。
 
 ![alt text](images/image.png)
-
