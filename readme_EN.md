@@ -12,7 +12,7 @@
   <a href="./readme.md">简体中文</a> | <strong>English</strong>
 </p>
 
-> A practical English walkthrough of the key controller fixes made on top of the original `Quadruped ROS2 Control` project, focused on the `Unitree_guide` branch and the `Unitree Go2` simulation workflow.
+> A practical English walkthrough built on top of the original `Quadruped ROS2 Control` project. At this stage, the modifications mainly start from the `Unitree_guide` related part and are organized together with `Unitree Go2` simulation and debugging experience; further updates will gradually extend to modifications and optimization for other controllers as well.
 
 ---
 

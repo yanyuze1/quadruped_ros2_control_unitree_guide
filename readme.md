@@ -12,7 +12,7 @@
   <strong>简体中文</strong> | <a href="./readme_EN.md">English</a>
 </p>
 
-> 这是一份基于原始 `Quadruped ROS2 Control` 项目整理的中文实践说明，聚焦 `Unitree_guide` 分支下的控制器修改过程与 `Unitree Go2` 仿真调试经验。
+> 这是一份基于原始 `Quadruped ROS2 Control` 项目整理的中文实践说明。当前阶段的修改主要从 `Unitree_guide` 相关部分展开，并结合 `Unitree Go2` 的仿真调试经验持续整理；后续也会逐步扩展到其他控制器的修改与优化。
 
 ---
 
