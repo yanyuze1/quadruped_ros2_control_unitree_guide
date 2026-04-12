@@ -16,6 +16,9 @@
 
 ---
 
+## 分支版本介绍
+在继续扩展当前项目之前，这里也想先介绍一下一个很重要的分支版本：[quadruped_ros2_control_unitree_guide `debug` 分支](https://github.com/yanyuze1/quadruped_ros2_control_unitree_guide/tree/debug?tab=readme-ov-file)。这个分支版本对 `unitree_guide` 控制器相关内容做了单独提取，方便更聚焦地查看、调试和分析该部分逻辑；同时也补充了一些可用于 `debug` 的内容，便于在排查问题、观察控制状态和后续优化时更高效地定位关键环节。
+
 ## 前言
 如果你也在折腾四足机器人控制、仿真和调参，希望这份记录能帮你更快进入状态，也少走一些弯路。感谢项目[Quadruped ROS2 Control](https://github.com/legubiao/quadruped_ros2_control/tree/humble)提供了扎实的基础，本项目正是在它之上继续修改与整理而来，当前使用的是 `Unitree_guide` 分支。后面的内容会围绕真实调试过程中遇到的问题与解决思路展开，希望能让你带着兴趣一路看下去，也能在需要时真正派上用场。
 ## 修改后效果

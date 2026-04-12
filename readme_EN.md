@@ -16,6 +16,9 @@
 
 ---
 
+## Branch Version
+Before diving further into the current project, it is worth introducing an important branch version first: [`quadruped_ros2_control_unitree_guide` on the `debug` branch](https://github.com/yanyuze1/quadruped_ros2_control_unitree_guide/tree/debug?tab=readme-ov-file). This branch provides a more standalone extraction of the `unitree_guide` controller related part, making it easier to inspect, debug, and analyze that portion in a focused way. It also adds some debug-oriented content, which is especially helpful for troubleshooting, observing controller behavior, and supporting later optimization work.
+
 ## Preface
 If you are also exploring quadruped control, simulation, and controller tuning, I hope this write-up helps you get oriented faster and avoid a few unnecessary detours. Special thanks to the [Quadruped ROS2 Control](https://github.com/legubiao/quadruped_ros2_control/tree/humble) project for providing such a solid foundation. This project is built and further refined on top of it, and the current work is based on the `Unitree_guide` branch. The sections below follow the real problems encountered during debugging and the ideas used to solve them, with the hope that the reading experience stays both useful and enjoyable all the way through.
 
