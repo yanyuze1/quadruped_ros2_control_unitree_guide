@@ -1,4 +1,4 @@
-# Quadruped ROS2 Control
+<h1 align="center">Quadruped ROS2 Control</h1>
 
 <p align="center">
   <img src="https://www.unitree.com/images/b5fffd3e4fc04e6f9fcafedb9516b341_3840x2146.jpg" alt="Unitree Go2 promotional image" width="88%">
