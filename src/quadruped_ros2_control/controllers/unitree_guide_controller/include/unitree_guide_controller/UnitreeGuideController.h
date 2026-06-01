@@ -7,17 +7,21 @@
 
 #include <controller_interface/controller_interface.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <geometry_msgs/msg/twist.hpp>
+#include <realtime_tools/realtime_buffer.hpp>
 #include <controller_common/FSM/FSMState.h>
 #include <controller_common/FSM/StatePassive.h>
 #include <controller_common/FSM/StateFixedDown.h>
 #include <controller_common/common/enumClass.h>
 
 #include "control/CtrlComponent.h"
+#include "control/CmdVelCommand.h"
 #include "FSM/StateBalanceTest.h"
 #include "FSM/StateFixedStand.h"
 #include "FSM/StateFreeStand.h"
 #include "FSM/StateSwingTest.h"
 #include "FSM/StateTrotting.h"
+#include "FSM/StateCmdVel.h"
 
 namespace unitree_guide_controller {
     struct FSMStateList {
@@ -27,6 +31,7 @@ namespace unitree_guide_controller {
         std::shared_ptr<StateFixedStand> fixedStand;
         std::shared_ptr<StateFreeStand> freeStand;
         std::shared_ptr<StateTrotting> trotting;
+        std::shared_ptr<StateCmdVel> cmdVel;
 
         std::shared_ptr<StateSwingTest> swingTest;
         std::shared_ptr<StateBalanceTest> balanceTest;
@@ -97,6 +102,8 @@ namespace unitree_guide_controller {
 
         rclcpp::Subscription<control_input_msgs::msg::Inputs>::SharedPtr control_input_subscription_;
         rclcpp::Subscription<std_msgs::msg::String>::SharedPtr robot_description_subscription_;
+        rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_subscription_;
+        realtime_tools::RealtimeBuffer<CmdVelCommand> cmd_vel_buffer_;
 
         std::unordered_map<
             std::string, std::vector<std::reference_wrapper<hardware_interface::LoanedCommandInterface> > *>

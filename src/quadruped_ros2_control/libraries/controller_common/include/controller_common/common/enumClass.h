@@ -14,6 +14,7 @@ enum class FSMStateName
     FIXEDSTAND,
     FREESTAND,
     TROTTING,
+    CMDVEL,
 
     SWINGTEST,
     BALANCETEST,

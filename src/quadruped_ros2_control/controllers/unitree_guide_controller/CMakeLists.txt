@@ -16,6 +16,7 @@ set(CONTROLLER_INCLUDE_DEPENDS
         std_msgs
         control_input_msgs
         controller_common
+        geometry_msgs
         kdl_parser
 )
 
@@ -34,6 +35,7 @@ add_library(${PROJECT_NAME} SHARED
         src/FSM/StateFreeStand.cpp
         src/FSM/StateBalanceTest.cpp
         src/FSM/StateTrotting.cpp
+        src/FSM/StateCmdVel.cpp
 
         src/robot/QuadrupedRobot.cpp
         src/robot/RobotLeg.cpp

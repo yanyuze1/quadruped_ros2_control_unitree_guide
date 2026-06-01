@@ -27,6 +27,8 @@ FSMStateName StateFixedStand::checkChange() {
             return FSMStateName::SWINGTEST;
         case 6:
             return FSMStateName::BALANCETEST;
+        case 7:
+            return FSMStateName::CMDVEL;
         default:
             return FSMStateName::FIXEDSTAND;
     }

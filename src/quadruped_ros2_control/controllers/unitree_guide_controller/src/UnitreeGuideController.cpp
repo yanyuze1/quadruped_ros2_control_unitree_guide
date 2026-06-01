@@ -150,6 +150,16 @@ namespace unitree_guide_controller
                 ctrl_interfaces_.control_inputs_.rx = msg->rx;
                 ctrl_interfaces_.control_inputs_.ry = msg->ry;
             });
+            
+        cmd_vel_subscription_ = get_node()->create_subscription<geometry_msgs::msg::Twist>(
+            "/cmd_vel", 10, [this](const geometry_msgs::msg::Twist::SharedPtr msg)
+            {
+                CmdVelCommand cmd;
+                cmd.twist = *msg;
+                cmd.stamp = get_node()->now();
+                cmd.valid = true;
+                cmd_vel_buffer_.writeFromNonRT(cmd);
+            });
 
         robot_description_subscription_ = get_node()->create_subscription<std_msgs::msg::String>(
             "/robot_description", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local(),
@@ -206,6 +216,7 @@ namespace unitree_guide_controller
         state_list_.freeStand = std::make_shared<StateFreeStand>(ctrl_interfaces_, ctrl_component_);
         state_list_.balanceTest = std::make_shared<StateBalanceTest>(ctrl_interfaces_, ctrl_component_);
         state_list_.trotting = std::make_shared<StateTrotting>(ctrl_interfaces_, ctrl_component_);
+        state_list_.cmdVel = std::make_shared<StateCmdVel>(ctrl_interfaces_, ctrl_component_, cmd_vel_buffer_);
 
         // Initialize FSM
         current_state_ = state_list_.passive;
@@ -258,6 +269,8 @@ namespace unitree_guide_controller
             return state_list_.freeStand;
         case FSMStateName::TROTTING:
             return state_list_.trotting;
+        case FSMStateName::CMDVEL:
+            return state_list_.cmdVel;
         case FSMStateName::SWINGTEST:
             return state_list_.swingTest;
         case FSMStateName::BALANCETEST:
