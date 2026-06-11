@@ -2,7 +2,7 @@
 
 <p align="center">
   <audio controls src="video/宇树Go2实战避坑.m4a">
-    Your browser does not support audio playback. Please open the audio file <a href="video/宇树Go2实战避坑.m4a">here</a>.
+    Your browser does not support audio playback. Please open the audio file <a href="video/宇树Go2实战避坑.mp3">here</a>.
   </audio>
 </p>
 

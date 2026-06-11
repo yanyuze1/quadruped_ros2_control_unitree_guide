@@ -2,7 +2,7 @@
 
 <p align="center">
   <audio controls src="video/宇树Go2实战避坑.m4a">
-    您的浏览器不支持音频播放，请点击 <a href="video/宇树Go2实战避坑.m4a">这里</a> 打开音频。
+    您的浏览器不支持音频播放，请点击 <a href="video/宇树Go2实战避坑.mp3">这里</a> 打开音频。
   </audio>
 </p>
 
